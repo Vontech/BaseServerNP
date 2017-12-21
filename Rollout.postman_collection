@@ -1,0 +1,112 @@
+{
+	"variables": [],
+	"info": {
+		"name": "Rollout",
+		"_postman_id": "7e5d64af-d883-aba9-a769-f1cfe06a6de2",
+		"description": "The API endpoints and tests for the Rollout Server",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create User",
+			"request": {
+				"url": "localhost:3000/api/users",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "testuser@rollout.com",
+							"description": "",
+							"type": "text"
+						},
+						{
+							"key": "name",
+							"value": "Test User",
+							"description": "",
+							"type": "text"
+						},
+						{
+							"key": "phone",
+							"value": "8608050050",
+							"description": "",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "test1234",
+							"description": "",
+							"type": "text"
+						}
+					]
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Authenticate",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"accessToken\", jsonData.access_token);"
+						]
+					}
+				}
+			],
+			"request": {
+				"url": "localhost:3000/oauth/token/",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/x-www-form-urlencoded",
+						"description": ""
+					},
+					{
+						"key": "Authorization",
+						"value": "Basic {{BearerToken}}",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "username",
+							"value": "testuser@rollout.com",
+							"description": "",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "test1234",
+							"description": "",
+							"type": "text"
+						},
+						{
+							"key": "grant_type",
+							"value": "password",
+							"description": "",
+							"type": "text"
+						}
+					]
+				},
+				"description": ""
+			},
+			"response": []
+		}
+	]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "rollout-server",
+  "version": "1.0.0",
+  "description": "Our server for the rollout application.",
+  "main": "app.js",
+  "scripts": {
+    "preinstall": "npm i -g nodemon && npm update"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vontell/RolloutServer.git"
+  },
+  "keywords": [
+    "rollout",
+    "social",
+    "meetup"
+  ],
+  "author": "Aaron Vontell, Param Bidja, Tej Patel",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/vontell/RolloutServer/issues"
+  },
+  "homepage": "https://github.com/vontell/RolloutServer#readme",
+  "dependencies": {
+    "bcrypt": "^1.0.3",
+    "bluebird": "^3.5.1",
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "nodemon": "^1.14.1",
+    "oauth2-server": "^2.4.1",
+    "pg": "^6.4.2",
+    "pg-connection-string": "^0.1.3",
+    "pg-minify": "^0.4.5",
+    "pg-promise": "^5.9.7",
+    "postgres-array": "^1.0.2",
+    "postgres-bytea": "^1.0.0",
+    "postgres-date": "^1.0.3",
+    "request": "^2.83.0",
+    "spex": "^1.2.1",
+    "split": "^1.0.1",
+    "through": "^2.3.8",
+    "winston": "^2.4.0",
+    "xtend": "^4.0.1"
+  }
+}
