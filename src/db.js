@@ -37,6 +37,16 @@ function getUser(userId, callback) {
     });
 }
 
+function _getUsersByEmail(email, callback) {
+    c.db.any('select ' + relevantUserProps + ' from users where email=$1', [email])
+        .then(function (data) {
+            callback(data);
+    })
+    .catch(function (err) {
+            callback(err);
+    });
+}
+
 // Calls callback with the found user if the user is an admin. Otherwise, a 403 error is thrown
 function getUserIfAdmin(userId, res, callback) {
     c.db.one('select ' + relevantUserProps + ' from users where id=$1', [userId])
@@ -62,29 +72,53 @@ function getUserIfAdmin(userId, res, callback) {
 // Creates a new user from the given information
 function createUser(req, res, next) {
     
+    // First make sure that email is provided for an initial check
+    if(!req.body.email) {
+        res.status(500)
+        .json({
+            status: 'failure',
+            message: 'Failure to create account; an email must be provided.'
+        });
+        return;
+    }
+    
     // TODO: Check if a user already exists
-
-    bcrypt.hash(req.body.password, 8, function(err, hash) {
+    _getUsersByEmail(req.body.email, function(results) {
         
-        req.body.password = hash;
-        c.db.none('insert into users(email, name, password, phone)' +
-        'values(${email}, ${name}, ${password}, ${phone})',
-        req.body)
-        .then(function () {
-            res.status(200)
-            .json({
-                status: 'success',
-                message: 'Inserted new user ' + req.body.email
-            });
-        })
-        .catch(function (err) {
-            console.log(err)
+        // If the results show that a user already exists, return an error
+        if (results.length > 0) {
             res.status(500)
             .json({
                 status: 'failure',
-                message: 'Failure to create user; did you forget to set the email, name, password, or phone?'
+                message: 'An account with this email already exists; please try another email.'
             });
-            //return next(err);
+            return;
+        }
+        
+        bcrypt.hash(req.body.password, 8, function(err, hash) {
+        
+            req.body.password = hash;
+            c.db.none('insert into users(email, name, password, phone)' +
+            'values(${email}, ${name}, ${password}, ${phone})',
+            req.body)
+            .then(function () {
+                res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'Inserted new user ' + req.body.email
+                });
+            })
+            .catch(function (err) {
+                console.log(err)
+                res.status(500)
+                .json({
+                    status: 'failure',
+                    error: err.message,
+                    message: 'Sorry, there was an issue with creating your account; please try again later.'
+                });
+                //return next(err);
+            });
+
         });
         
     });
