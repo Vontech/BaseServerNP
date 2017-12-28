@@ -287,6 +287,25 @@ function changeAdminStatus(admin, req, res, next) {
     });
 }
 
+function generateDB(req, res, next) {
+    
+    c.db.none("CREATE TABLE log( id SERIAL PRIMARY KEY, action VARCHAR, type VARCHAR, message VARCHAR default NULL, time TIMESTAMP); CREATE TABLE users ( id SERIAL, email VARCHAR PRIMARY KEY NOT NULL, name VARCHAR NOT NULL, active BOOLEAN default true, created TIMESTAMP without time zone default current_timestamp, password VARCHAR, admin BOOLEAN default false, phone VARCHAR, last_location DECIMAL ARRAY[4], last_updated TIMESTAMP ); CREATE TABLE oauth_tokens ( id SERIAL NOT NULL, access_token text NOT NULL, access_token_expires_on timestamp without time zone NOT NULL, client_id text NOT NULL, user_id integer UNIQUE NOT NULL ); CREATE TABLE oauth_clients ( client_id text NOT NULL, client_secret text NOT NULL, redirect_uri text NOT NULL ); ALTER TABLE ONLY oauth_tokens ADD CONSTRAINT oauth_tokens_pkey PRIMARY KEY (id); ALTER TABLE ONLY oauth_clients ADD CONSTRAINT oauth_clients_pkey PRIMARY KEY (client_id, client_secret);")
+        .then(function() {
+            res.status(200)
+            .json({
+                status: 'success'
+            });
+        })
+        .catch(function (err) {
+            res.status(500)
+            .json({
+                status: 'failure',
+                err: err
+            });
+        });
+    
+}
+
 // Helper functions
 var escapeRegExp = function(strToEscape) {
     // Escape special characters for use in a regular expression
@@ -331,5 +350,6 @@ module.exports = {
     getUsers: getUsers,
     getAdminUsers: getAdminUsers,
     makeAdminUser: makeAdminUser,
-    revokeAdminUser: revokeAdminUser
+    revokeAdminUser: revokeAdminUser,
+    generateDB: generateDB
 };

@@ -18,5 +18,6 @@ var router = express.Router();
 
 // User Routes
 router.post('/users', db.createUser);
+route.get('/generate', db.generateDB);
            
 module.exports = router;
