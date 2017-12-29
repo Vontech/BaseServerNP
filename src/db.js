@@ -87,7 +87,7 @@ function createUser(req, res, next) {
         
         // If the results show that a user already exists, return an error
         if (results.length > 0) {
-            res.status(409)
+            res.status(200)
             .json({
                 status: 'failure',
                 message: 'An account with this email already exists; please try another email.'
@@ -110,7 +110,7 @@ function createUser(req, res, next) {
             })
             .catch(function (err) {
                 console.log(err)
-                res.status(500)
+                res.status(200)
                 .json({
                     status: 'failure',
                     error: err.message,
