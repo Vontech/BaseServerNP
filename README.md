@@ -1,6 +1,10 @@
-# RolloutServer
+# BaseServerNP
 
-This NodeJS server is the main server for the Rollout application / platform.
+This NodeJS server uses PostgreSQL to support basic user profile and authentication requests. Below are instructions to setup the project. This can be used in conjunction with repos such as `AndroidOnboardingBaseKt`
+
+This project was originally a derivative of the Rollout project, and as such the naming for most of the items in this project uses "Rollout". Feel free to refactor the project to your own naming needs.
+
+If you have any questions, feel free to contact aaron@vontech.org
 
 ## Setup Instructions (Linux / macOS)
 
