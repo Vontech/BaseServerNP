@@ -19,5 +19,9 @@ var router = express.Router();
 // User Routes
 router.post('/users', db.createUser);
 router.get('/generate', db.generateDB);
+
+// Forgot Password Routes
+// TODO: Protect these with at least some key?
+router.post('/forgot/request', db.sendForgotPasswordUrl);
            
 module.exports = router;

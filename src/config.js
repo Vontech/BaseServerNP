@@ -18,6 +18,9 @@ const dbOptions = {
 //    promiseLib: promise
 };
 
+// Mailer options
+const real_domain = "rolloutserver.herokuapp.com";
+
 // Database connection string. Modify the host, user, and password to connect to
 // a remote PostgreSQL instance. Optionally use SSL to encrypt your connection.
 var pgp = require('pg-promise')(dbOptions);
@@ -37,5 +40,6 @@ module.exports = {
     webPort: webPort,
     db: db,
     client_id: client_id,
-    client_secret: client_secret
+    client_secret: client_secret,
+    real_domain: real_domain
 };

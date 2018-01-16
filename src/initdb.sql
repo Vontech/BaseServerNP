@@ -55,6 +55,17 @@ CREATE TABLE oauth_clients (
     redirect_uri text NOT NULL
 );
 
+--
+-- Forgot Password tracking table
+--
+
+CREATE TABLE forgot_password_reqs (
+    id SERIAL NOT NULL,
+    email VARCHAR PRIMARY KEY REFERENCES users,
+    u_hash VARCHAR NOT NULL,
+    time_requested timestamp without time zone default current_timestamp
+);
+
 
 --
 -- Name: oauth_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace:

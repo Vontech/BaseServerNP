@@ -10,10 +10,15 @@
 //      ./config - ports, naming, urls, logos, etc... Found in config.js
 //      bluebird - a promises library for PostgreSQL
 //      bcrypt - hashing and salting for user creation
+//      crypto - for random hash generation
+//      base64-url - for encoding emails
 
-const c       = require('./config');
-const promise = require('bluebird');
-const bcrypt  = require('bcrypt');
+const c         = require('./config');
+const mailer    = require('./mailer');
+const promise   = require('bluebird');
+const bcrypt    = require('bcrypt');
+const crypto    = require('crypto');
+const base64url = require('base64-url');
 
 // Logs an action on the database, for auditing purposes
 function log(action, type, message) {
@@ -214,6 +219,135 @@ function updateThisUser(req, res, next) {
     
 }
 
+// Forgot password functionality --------------------------------------------
+
+// Returns json with an "exists" field for the given email, true if the user
+// exists
+function checkEmailForResetPassword(req, res, next) {
+    
+    if (!req.body.email) {
+        res.status(500)
+        .json({
+            status: 'failure',
+            message: 'No email given for request'
+        });
+        return;
+    }
+    
+    c.db.any("SELECT * FROM users WHERE email=$1", [req.body.email])
+        .then(function(data) {
+            if (data.length > 0) {
+                res.status(200)
+                .json({
+                    exists: true
+                });
+            } else {
+                res.status(200)
+                .json({
+                    exists: false
+                });
+            }
+        })
+        .catch(function (err) {
+            res.status(200)
+            .json({
+                exists: false
+            });
+            //return next(err);
+        });
+    
+}
+
+function sendForgotPasswordUrl(req, res, next) {
+    
+    var forgetUrl = "http://" + c.real_domain + "/rollout/forgot?id="
+    
+    // First, validate that an email was given
+    if (!req.body.email) {
+        res.status(500)
+        .json({
+            status: 'failure',
+            message: 'No email given for request.'
+        });
+        return;
+    }
+    
+    // Second, clear any previous requests for this given user (invalidates any previous request)
+    c.db.none("DELETE FROM forgot_password_reqs WHERE email=$1", [req.body.email])
+    .then(function() {
+        
+        // Create random hash
+        var hash = crypto.randomBytes(20).toString('hex');
+        
+        // Store in DB the email, hash, and current time
+        c.db.none('insert into forgot_password_reqs(email, u_hash)' +
+                  'values($1, $2)', [req.body.email, hash])
+        .then(function () {
+            
+            // Generate Base64 encoding of email:hash
+            var encoding = base64url.encode(req.body.email + ":" + hash);
+            console.log("Hash: " + encoding);
+            
+            // Send email with link to {{RolloutServerUrl}}/rollout/forgot?id=Base64(email:hash)
+            var content = '<html><link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet"> <style>body{padding: 16px;font-family: \'Lato\', sans-serif;max-width: 600px;}a{text-decoration: none;color: white;background: #2C2C2C;padding: 8px;border-radius: 4px;}</style><body><p>You have requested to reset your password for <b>Rollout</b>. Please follow the link below to finish resetting your password.</p><a href="' + forgetUrl + encoding + '">Reset Password</a></body></html>';
+            
+            mailer.sendEmail(req.body.email, "Rollout Password Reset", content, function(success) {
+                
+                if (success) {
+                    res.status(200)
+                    .json({
+                        status: 'success',
+                        message: 'Check your email for a link to reset your Rollout password.'
+                    });
+                } else {
+                    res.status(500)
+                    .json({
+                        status: 'failure',
+                        message: 'An error occured while attempting to reset your password; please try again.'
+                    });
+                }
+                
+            });
+            
+        })
+        .catch(function (err) {
+            console.log(err)
+            res.status(500)
+            .json({
+                status: 'failure',
+                error: err.message,
+                message: 'An error occured while attempting to reset your password; please try again.'
+            });
+            //return next(err);
+        });
+    })
+    .catch(function (err) {
+        res.status(500)
+        .json({
+            status: 'failure',
+            message: 'An error occured while attempting to reset your password; please try again.',
+            error: err.message
+        });
+    });
+    
+}
+
+function receiveForgotPasswordUrl(req, res, next) {
+    
+    // Validate request with fields 'request' and 'new_password'
+    
+    // Decode 'request' into email:hash
+    
+    // Get reset request from email                     - if fail, say time may have ran out
+    
+    // Check that hash matches, and that time is left   - if fail, say time may have ran out
+    
+    // If all good, bcrypt hash password and update users
+    
+    // Finally, delete row in forgot requests
+    
+}
+
 // Admin functionality ------------------------------------------------------
 
 // Returns all logs from the server - must be an admin and authenticated to access this resource
@@ -385,5 +519,7 @@ module.exports = {
     getAdminUsers: getAdminUsers,
     makeAdminUser: makeAdminUser,
     revokeAdminUser: revokeAdminUser,
-    generateDB: generateDB
+    generateDB: generateDB,
+    sendForgotPasswordUrl: sendForgotPasswordUrl,
+    receiveForgotPasswordUrl: receiveForgotPasswordUrl
 };
