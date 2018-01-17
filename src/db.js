@@ -455,6 +455,178 @@ function changeAdminStatus(admin, req, res, next) {
     });
 }
 
+// FRIENDING FEATURES ---------------------------------------------------------
+
+function badResponse(res, error, realErr) {
+    res.status(500)
+    .json({
+        status: 'failure',
+        message: error,
+        err: realErr
+    });
+}
+
+function goodResponse(res, message) {
+    res.status(200)
+    .json({
+        status: 'success',
+        message: message
+    });
+}
+
+/*
+ *  An authenticated request which adds a friend link from the requesting user
+ *  to the given user (recipient). One-way directed edges represent a pending
+ *  friend request.
+ *      recipient - the email of the requesting user
+ */
+function addFriend(req, res, next) {
+    
+    getUser(req.user.id, function(user) {
+        
+        // First check that a recipient is given
+        if (req.body.recipient == undefined) {
+            badResponse(res, "Error adding friend; was a recipient given?");
+            return;
+        }
+        
+        c.db.any("select * from friends where requester = $1 and recipient = $2", [user.email, req.body.recipient])
+            .then(function (data) {
+            
+                // Check that this friend link doesnt already exist
+                if (data.length > 0) {
+                    badResponse(res, "Error adding friend; this friend link already exists.");
+                    return;
+                }
+            
+                // Otherwise, add the friend
+                c.db.none('insert into friends(requester, recipient) ' +
+                          'values($1, $2)', [user.email, req.body.recipient])
+                    .then(function() {
+                        goodResponse(res, "Friend added successfully");
+                    })
+                    .catch(function(error) {
+                        console.log(error);
+                        badResponse(res, "Error occurred while adding friend; please try again later.", error);
+                    });
+            
+            })
+            .catch(function (err) { badResponse(res, "Error adding friend") });
+    });
+    
+}
+
+/*
+ *  An authenticated request which removes any links between the requesting user
+ *  and the given user (recipient). This removes both friend requests and
+ *  friends overall.
+ *      recipient - the email of the user to be removed
+ */
+function removeFriend(req, res, next) {
+    
+    getUser(req.user.id, function(user) {
+        
+        // First check that a recipient is given
+        if (req.body.recipient == undefined) {
+            badResponse(res, "Error removing friend; was a recipient given?");
+            return;
+        }
+        
+        // Otherwise, delete the friend edges
+        c.db.none("delete from friends where (requester = $1 and recipient = $2) or (requester = $2 and recipient = $1)", [user.email, req.body.recipient])
+            .then(function (data) {
+                goodResponse(res, "Friend removed successfully");
+            })
+            .catch(function (err) { badResponse(res, "Error removing friend", err) });
+    });
+    
+}
+
+/*
+ *  Sends an sms to the given recipient (recipient) which invites them to join
+ *  the platform, as the current user would like to invite them to a group.
+ *      recipient - the phone number of the user to be invited
+ */
+function suggestFriend(req, res, next) {
+    
+    getUser(req.user.id, function(user) {
+        
+        // First check that a recipient is given
+        if (req.body.recipient == undefined) {
+            badResponse(res, "Error suggesting friend; was a recipient given?");
+            return;
+        }
+        
+        var message = "Blah has invited you to...";
+        
+    });
+    
+}
+
+/*
+ *  Returns a list of any friends that this user is connected to in the friends
+ *  graph. If the edge is both ways, then they are absolute friends (and online
+ *  status is permitted). If the edge goes from user to friend, then this is a
+ *  sent friend request. If the edge goes from friend to user, then this is a
+ *  received friend request.
+ */
+function getFriends(req, res, next) {
+    
+    getUser(req.user.id, function(user) {
+        
+        // First get a list of edges from the user to other users (i.e. requested friends)
+        c.db.any("select recipient from friends where requester = $1", [user.email])
+            .then(function (mine) {
+                var sentRequests = mine.map(x => x.recipient);
+            
+                // Now get list of edges from other users to me
+                c.db.any("select requester from friends where recipient = $1", [user.email])
+                .then(function (theirs) {
+                    var recievedRequests = theirs.map(x => x.requester);
+
+                    // Now, we construct three lists; sent friend requests, received friend requests, and confirmed friends.
+                    var confirmed = sentRequests.filter((n) => recievedRequests.includes(n))
+                    var sent = sentRequests.filter((n) => !confirmed.includes(n))
+                    var recieved = recievedRequests.filter((n) => !confirmed.includes(n))
+                    res.status(200)
+                    .json({
+                        status: 'success',
+                        data: {
+                            confirmed: confirmed,
+                            sent: sent,
+                            recieved: recieved
+                        }
+                    });
+
+                })
+                .catch(function (err) { badResponse(res, "Error getting friends", err) });
+                
+            })
+            .catch(function (err) { badResponse(res, "Error getting friends", err) });
+    });
+    
+}
+
+/*
+ *  Returns a list of users (without online status) that exist in the platform
+ *  given a list of phone numbers from the user.
+ *      phones - The list of phone numbers to check for users
+ */
+function getPossibleFriends() {
+    
+}
+
+/*
+ *  Returns a list of users (without online status) that are one edge away from
+ *  all of the user's existing confirmed friends (i.e. mutual friends). The possible
+ *  are also given a ranking as determined by the number of friends who had this
+ *  mutual friend (ranking is 1...n distinct, no count information is given).
+ *  TODO: This may also utilize phone numbers?
+ */
+function getPredictedFriends() {
+    
+}
+
 function generateDB(req, res, next) {
     
     c.db.none("CREATE TABLE log( id SERIAL PRIMARY KEY, action VARCHAR, type VARCHAR, message VARCHAR default NULL, time TIMESTAMP); CREATE TABLE users ( id SERIAL, email VARCHAR PRIMARY KEY NOT NULL, name VARCHAR NOT NULL, active BOOLEAN default true, created TIMESTAMP without time zone default current_timestamp, password VARCHAR, admin BOOLEAN default false, phone VARCHAR, last_location DECIMAL ARRAY[4], last_updated TIMESTAMP ); CREATE TABLE oauth_tokens ( id SERIAL NOT NULL, access_token text NOT NULL, access_token_expires_on timestamp without time zone NOT NULL, client_id text NOT NULL, user_id integer UNIQUE NOT NULL ); CREATE TABLE oauth_clients ( client_id text NOT NULL, client_secret text NOT NULL, redirect_uri text NOT NULL ); ALTER TABLE ONLY oauth_tokens ADD CONSTRAINT oauth_tokens_pkey PRIMARY KEY (id); ALTER TABLE ONLY oauth_clients ADD CONSTRAINT oauth_clients_pkey PRIMARY KEY (client_id, client_secret);")
@@ -521,5 +693,11 @@ module.exports = {
     revokeAdminUser: revokeAdminUser,
     generateDB: generateDB,
     sendForgotPasswordUrl: sendForgotPasswordUrl,
-    receiveForgotPasswordUrl: receiveForgotPasswordUrl
+    receiveForgotPasswordUrl: receiveForgotPasswordUrl,
+    addFriend: addFriend,
+    removeFriend: removeFriend,
+    suggestFriend: suggestFriend,
+    getFriends: getFriends,
+    getPossibleFriends: getPossibleFriends,
+    getPredictedFriends: getPredictedFriends
 };

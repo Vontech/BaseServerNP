@@ -66,6 +66,14 @@ CREATE TABLE forgot_password_reqs (
     time_requested timestamp without time zone default current_timestamp
 );
 
+---
+---
+---
+
+CREATE TABLE friends (
+    requester VARCHAR REFERENCES users,
+    recipient VARCHAR REFERENCES users
+);
 
 --
 -- Name: oauth_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace:

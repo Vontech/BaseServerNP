@@ -30,5 +30,14 @@ router.get('/admin/users', db.getUsers);
 router.get('/admin/admins', db.getAdminUsers);
 router.post('/admin/addadmin', db.makeAdminUser);
 router.post('/admin/revokeadmin', db.revokeAdminUser);
+
+// Friend routes
+router.post('/friends/add', db.addFriend);
+router.post('/friends/remove', db.removeFriend);
+router.post('/friends/suggest', db.suggestFriend);
+router.get('/friends/legit', db.getFriends);
+router.post('/friends/possible', db.getPossibleFriends);
+router.post('/friends/predicted', db.getPredictedFriends);
+
            
 module.exports = router;
